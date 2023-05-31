@@ -1,0 +1,131 @@
+-- USERS --
+CREATE DOMAIN users_schema.email_type AS VARCHAR(75) NOT NULL CHECK (value ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+CREATE DOMAIN users_schema.phone_type AS VARCHAR(50) NOT NULL CHECK (value ~* '^(?:(?:\+|00)33[\s.-]{0,3}(?:\(0\)[\s.-]{0,3})?|0)[1-9](?:(?:[\s.-]?\d{2}){4}|\d{2}(?:[\s.-]?\d{3}){2})$');
+
+DROP TABLE IF EXISTS users_schema.users CASCADE;
+
+CREATE TABLE IF NOT EXISTS users_schema.users (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    name VARCHAR(75) NOT NULL UNIQUE,
+    email users_schema.email_type NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    city VARCHAR(100),
+    state VARCHAR(100),
+    country VARCHAR(100),
+    phone users_schema.phone_type NOT NULL,
+    street VARCHAR(150),
+    order_nbr INTEGER DEFAULT 0 CHECK (order_nbr >= 0),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- PRODUCTS --
+
+DROP TABLE IF EXISTS products_schema.products CASCADE;
+
+CREATE TABLE IF NOT EXISTS products_schema.products (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    seller_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE UNIQUE,
+    name VARCHAR(75) NOT NULL UNIQUE,
+    description VARCHAR(255) NOT NULL,
+    price MONEY NOT NULL,
+    images VARCHAR[] NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS products_schema.order CASCADE;
+
+CREATE TABLE IF NOT EXISTS products_schema.order (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    buyer_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    product_id BIGINT NOT NULL REFERENCES products_schema.products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS products_schema.ordered CASCADE;
+
+CREATE TABLE IF NOT EXISTS products_schema.ordered (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    order_id BIGINT NOT NULL REFERENCES products_schema.order(id) ON DELETE CASCADE ON UPDATE CASCADE UNIQUE,
+    product_id BIGINT NOT NULL REFERENCES products_schema.products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS products_schema.messages CASCADE;
+
+CREATE TABLE IF NOT EXISTS products_schema.messages (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    sender_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    receiver_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    message VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS products_schema.product_messages CASCADE;
+
+CREATE TABLE IF NOT EXISTS products_schema.product_messages (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    message_id BIGINT NOT NULL REFERENCES products_schema.messages(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    product_id BIGINT NOT NULL REFERENCES products_schema.products(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- FORUM --
+
+DROP TABLE IF EXISTS forum_schema.category CASCADE;
+CREATE TABLE IF NOT EXISTS forum_schema.category (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    name VARCHAR(75) NOT NULL UNIQUE,
+    description TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS forum_schema.subject CASCADE;
+CREATE TABLE IF NOT EXISTS forum_schema.subject (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    category_id BIGINT NOT NULL REFERENCES forum_schema.category(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    title VARCHAR(75) NOT NULL,
+    description TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS forum_schema.post CASCADE;
+CREATE TABLE IF NOT EXISTS forum_schema.post (
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    subject_id BIGINT NOT NULL REFERENCES forum_schema.subject(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    user_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- GALLERY --
+
+DROP TABLE IF EXISTS gallery_schema.albums CASCADE;
+
+CREATE TABLE IF NOT EXISTS gallery_schema.albums
+(
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    title VARCHAR(100) NOT NULL,
+    description TEXT,
+    user_id BIGINT NOT NULL REFERENCES users_schema.users(id) ON DELETE CASCADE ON UPDATE CASCADE UNIQUE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+DROP TABLE IF EXISTS gallery_schema.pictures CASCADE;
+
+CREATE TABLE IF NOT EXISTS gallery_schema.pictures
+(
+    id BIGSERIAL PRIMARY KEY NOT NULL CHECK (id > 0),
+    album_id BIGINT NOT NULL REFERENCES gallery_schema.albums(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    source VARCHAR(100) NOT NULL,
+    description TEXT
+);
